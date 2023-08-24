@@ -1,4 +1,3 @@
-
 %GUI
 function GUI()
 
@@ -110,7 +109,7 @@ St_ttCoutside=tCoutside*St/S_St;%外环传输一个数据包倒计时s
     end
 
 % 创建窗口
-Fig =figure("name","Drones Trajectory Greedy", "position", [100 100 1200 750]);
+Fig =figure("name","Drones Trajectory radom", "position", [100 100 1200 750]);
 % %增加暂停按钮
 bt =uicontrol(Fig,'Style','togglebutton','String','||','FontSize',10,'Units','normalized','Position',[0.92,0.3,0.05,0.05],'Callback',@do);
 % figure("name","Drones Trajectory", "position", [100 100 1200 750]);
@@ -297,7 +296,7 @@ while t<=turn %数据收集轮数
 
     % 初始化drone
     if t ==1
-        drone=zeros(circle,14,Sm);%drone的数组信息：现在位置，上一跳位置，起始位置，现在坐标位置，剩余能量，携带数据包个数，拍摄数据倒计时，投递数据包倒计时，开始产生数据时间,开始投递数据时间,结束投递时间,被上一环锁定标志,投递数据包个数,无线电波连线
+        drone=zeros(circle,15,Sm);%drone的数组信息：现在位置，上一跳位置，起始位置，现在坐标位置，剩余能量，携带数据包个数，拍摄数据倒计时，投递数据包倒计时，开始产生数据时间,开始投递数据时间,结束投递时间,被上一环锁定标志,投递数据包个数,无线电波连线,正在寻找的目标节点
         drone_node=zeros(circle,Node,Sm);
     end
     z=1;
@@ -326,6 +325,7 @@ while t<=turn %数据收集轮数
             drone(x,8,z)=0;%更新投递数据包倒计时
             drone(x,12,z)=0;%更新被上一环锁定标志
             drone(x,14,z)=0;%无线电波
+            drone(x,15,z)=0;%正在寻找的目标节点
 
             x=x+1;
         end
@@ -360,6 +360,7 @@ while t<=turn %数据收集轮数
                                 end
                                 i=i-1;
                             end
+                            drone(x,15,z)=0;
                             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                             node(need,7)=T;%更新数据收集结束时间
                             node(need,9)=0;%更新doom标志为零
@@ -461,31 +462,21 @@ while t<=turn %数据收集轮数
                                     i=i+1;
                                 end
                                 delete(drone(x,14,z)) %删除投递无线电波
-                                i=1;
-                                mindistance =99999;
-                                need = 0;
-                                while i<=Node
 
-                                    if node(i,3) == z && node(i,4) == x && node(i,9) ==1
-                                        if abs(drone(x,1,z)-node(i,1))<mindistance
-                                            mindistance=abs(drone(x,1,z)-node(i,1));
-                                            need=i;%寻找最近节点
+                                if drone(x,15,z) ~=0
+                                    if drone(x,1,z)==node(drone(x,15,z),1)%已处于目标节点处
+                                        drone(x,7,z) = St_tphoto;%更新拍摄数据倒计时
+                                        drone(x,6,z) = drone(x,6,z)+1;%累加携带的包
+                                        i=1;
+                                        while i<=Node
+                                            if drone_node(x,i,z) ==0
+                                                drone_node(x,i,z)=drone(x,15,z);%node目录更新
+                                                break
+                                            end
+                                            i=i+1;
                                         end
+                                        node(drone(x,15,z),5)=T;%更新节点遭遇drone的时间
                                     end
-                                    i=i+1;
-                                end
-                                if mindistance==0 %已处于最近节点处
-                                    drone(x,7,z) = St_tphoto;%更新拍摄数据倒计时
-                                    drone(x,6,z) = drone(x,6,z)+1;%累加携带的包
-                                    i=1;
-                                    while i<=Node
-                                        if drone_node(x,i,z) ==0
-                                            drone_node(x,i,z)=need;%node目录更新
-                                            break
-                                        end
-                                        i=i+1;
-                                    end
-                                    node(need,5)=T;%更新节点遭遇drone的时间
                                 end
                             end
                         else %处于非drone投递时间
@@ -503,21 +494,35 @@ while t<=turn %数据收集轮数
                                     drone(x,14,z)=b;%无线电传输线存储，方便投递结束删除
 
                                 else %没有携带数据包
-                                    i=1;
-                                    mindistance =99999;
-                                    need = 0;
-                                    while i<=Node
 
-                                        if node(i,3) == z && node(i,4) == x && node(i,9) ==1
-                                            if abs(drone(x,1,z)-node(i,1))<mindistance
-                                                mindistance=abs(drone(x,1,z)-node(i,1));
-                                                need=i;%寻找最近节点
+                                    if drone(x,15,z)==0
+                                        i=1;
+                                        lbj = 0;
+                                        while i<=Node
+
+                                            if node(i,3) == z && node(i,4) == x && node(i,9) ==1
+                                                lbj= lbj+1;
+                                            end
+                                            i=i+1;
+                                        end
+                                        if lbj ~=0
+                                            lbjradom=randi(lbj);
+                                            i=1;
+                                            lbjc=0;
+                                            while i<=Node
+
+                                                if node(i,3) == z && node(i,4) == x && node(i,9) ==1
+                                                    lbjc= lbjc+1;
+                                                    if lbjc == lbjradom
+                                                        drone(x,15,z)=i;
+                                                    end
+                                                end
+                                                i=i+1;
                                             end
                                         end
-                                        i=i+1;
                                     end
-                                    if mindistance~=99999%存在最近目标节点
-                                        if mindistance==0 %已处于最近节点处
+                                    if drone(x,15,z)~=0%存在随机目标节点
+                                        if drone(x,1,z)==node(drone(x,15,z),1) %已经处于随机节点处
                                             drone(x,7,z)=St_tphoto-St;%拍摄数据倒计时减少St时刻；
                                             drone(x,5,z)=drone(x,5,z)-St_Pphoto;%拍摄数据则能量减少
                                             drone(x,5,z)=drone(x,5,z)-St_Ph;%悬停能量减少
@@ -532,9 +537,9 @@ while t<=turn %数据收集轮数
                                             end
                                             node(need,5)=T-St;%节点遭遇drone的时间更新
 
-                                        else %存在最近目标节点
+                                        else %存在随机目标节点
                                             drone(x,2,z)=drone(x,1,z);%更新上一跳位置
-                                            if drone(x,1,z) > node(need,1)
+                                            if drone(x,1,z) > node(drone(x,15,z),1)
                                                 drone(x,1,z)=drone(x,1,z)-dcell;%更新现在位置
                                             else
                                                 drone(x,1,z)=drone(x,1,z)+dcell;%更新现在位置
@@ -545,42 +550,55 @@ while t<=turn %数据收集轮数
                                             drone(x,4,z)=b;%更新现在跳点坐标位置
                                             drone(x,5,z)=drone(x,5,z)-St_P(x);%飞行则能量减少
 
-                                            if ((drone(x,2,z)<=node(need,1) && node(need,1)<=drone(x,1,z))||(drone(x,1,z)<=node(need,1) && node(need,1)<=drone(x,2,z)))%遭遇最近目标节点
+                                            if ((drone(x,2,z)<=node(drone(x,15,z),1) && node(drone(x,15,z),1)<=drone(x,1,z))||(drone(x,1,z)<=node(drone(x,15,z),1) && node(drone(x,15,z),1)<=drone(x,2,z)))%遭遇随机目标节点
 
                                                 drone(x,7,z)=St_tphoto;%拍摄数据倒计时；
                                                 drone(x,6,z)=drone(x,6,z)+1;%累加携带的包
                                                 i=1;
                                                 while i<=Node
                                                     if drone_node(x,i,z) ==0
-                                                        drone_node(x,i,z)=need;%更新drone_node的list中的包
+                                                        drone_node(x,i,z)=drone(x,15,z);%更新drone_node的list中的包
                                                         break
                                                     end
                                                     i=i+1;
                                                 end
-                                                node(need,5)=T;%节点遭遇drone的时间更新
+                                                node(drone(x,15,z),5)=T;%节点遭遇drone的时间更新
                                             end
                                         end
                                     else
-                                        drone(x,5,z)=drone(x,5,z)-St_Ph;%无最近目标节点悬停则能量减少
+                                        drone(x,5,z)=drone(x,5,z)-St_Ph;%无随机目标节点悬停则能量减少
                                     end
                                 end
                             else %非内环
 
-                                i=1;
-                                mindistance =99999;
-                                need = 0;
-                                while i<=Node
+                                if drone(x,15,z)==0
+                                    i=1;
+                                    lbj = 0;
+                                    while i<=Node
 
-                                    if node(i,3) == z && node(i,4) == x && node(i,9) ==1
-                                        if abs(drone(x,1,z)-node(i,1))<mindistance
-                                            mindistance=abs(drone(x,1,z)-node(i,1));
-                                            need=i;%寻找最近节点
+                                        if node(i,3) == z && node(i,4) == x && node(i,9) ==1
+                                            lbj= lbj+1;
+                                        end
+                                        i=i+1;
+                                    end
+                                    if lbj ~=0
+                                        lbjradom=randi(lbj);
+                                        i=1;
+                                        lbjc=0;
+                                        while i<=Node
+
+                                            if node(i,3) == z && node(i,4) == x && node(i,9) ==1
+                                                lbjc= lbjc+1;
+                                                if lbjc == lbjradom
+                                                    drone(x,15,z)=i;
+                                                end
+                                            end
+                                            i=i+1;
                                         end
                                     end
-                                    i=i+1;
                                 end
 
-                                if mindistance~=99999%存在最近目标节点
+                                if drone(x,15,z)~=0%存在随机目标节点
 
                                     if((drone(x,2,z)<=drone(x-1,1,z) && drone(x-1,1,z)<=drone(x,1,z))||(drone(x,1,z)<=drone(x-1,1,z) && drone(x-1,1,z)<=drone(x,2,z)))%假如遭遇异环
                                         if drone(x,6,z)>0 %有携带包
@@ -616,7 +634,7 @@ while t<=turn %数据收集轮数
                                             end
                                         else %没有携带包
 
-                                            if mindistance==0 %已经处于最近节点处
+                                            if drone(x,1,z)==node(drone(x,15,z),1) %已经处于随机节点处
                                                 drone(x,7,z)=St_tphoto-St;%拍摄数据倒计时减少St时刻；
                                                 drone(x,5,z)=drone(x,5,z)-St_Pphoto;%拍摄数据则能量减少
                                                 drone(x,5,z)=drone(x,5,z)-St_Ph;%悬停能量减少
@@ -624,16 +642,16 @@ while t<=turn %数据收集轮数
                                                 i=1;
                                                 while i<=Node
                                                     if drone_node(x,i,z) ==0
-                                                        drone_node(x,i,z)=need;%更新drone_node的list中的包
+                                                        drone_node(x,i,z)=drone(x,15,z);%更新drone_node的list中的包
                                                         break
                                                     end
                                                     i=i+1;
                                                 end
-                                                node(need,5)=T-St;%节点遭遇drone的时间更新
+                                                node(drone(x,15,z),5)=T-St;%节点遭遇drone的时间更新
 
-                                            else%非处于最近节点处，移动drone
+                                            else%非处于随机节点处，移动drone
                                                 drone(x,2,z)=drone(x,1,z);%更新上一跳位置
-                                                if drone(x,1,z) > node(need,1)
+                                                if drone(x,1,z) > node(drone(x,15,z),1)
                                                     drone(x,1,z)=drone(x,1,z)-dcell;%更新现在位置
                                                 else
                                                     drone(x,1,z)=drone(x,1,z)+dcell;%更新现在位置
@@ -644,25 +662,25 @@ while t<=turn %数据收集轮数
                                                 drone(x,4,z)=b;%更新现在跳点坐标位置
                                                 drone(x,5,z)=drone(x,5,z)-St_P(x);%飞行则能量减少
 
-                                                if ((drone(x,2,z)<=node(need,1) && node(need,1)<=drone(x,1,z))||(drone(x,1,z)<=node(need,1) && node(need,1)<=drone(x,2,z))) %与相应node相遇
+                                                if ((drone(x,2,z)<=node(drone(x,15,z),1) && node(drone(x,15,z),1)<=drone(x,1,z))||(drone(x,1,z)<=node(drone(x,15,z),1) && node(drone(x,15,z),1)<=drone(x,2,z))) %与相应node相遇
 
                                                     drone(x,7,z)=St_tphoto;%拍摄数据倒计时；
                                                     drone(x,6,z)=drone(x,6,z)+1;%累加携带的包
                                                     i=1;
                                                     while i<=Node
                                                         if drone_node(x,i,z) ==0
-                                                            drone_node(x,i,z)=need;%更新drone_node的list中的包
+                                                            drone_node(x,i,z)=drone(x,15,z);%更新drone_node的list中的包
                                                             break
                                                         end
                                                         i=i+1;
                                                     end
-                                                    node(need,5)=T;%节点遭遇drone的时间更新
+                                                    node(drone(x,15,z),5)=T;%节点遭遇drone的时间更新
                                                 end
                                             end
                                         end
                                     else %没有遭遇异环
 
-                                        if mindistance==0 %已经处于最近节点处
+                                        if drone(x,1,z)==node(drone(x,15,z),1) %已经处于随机节点处
                                             drone(x,7,z)=St_tphoto-St;%拍摄数据倒计时；
                                             drone(x,5,z)=drone(x,5,z)-St_Pphoto;%拍摄数据则能量减少
                                             drone(x,5,z)=drone(x,5,z)-St_Ph;%悬停能量减少
@@ -670,16 +688,16 @@ while t<=turn %数据收集轮数
                                             i=1;
                                             while i<=Node
                                                 if drone_node(x,i,z) ==0
-                                                    drone_node(x,i,z)=need;%更新drone_node的list中的包
+                                                    drone_node(x,i,z)=drone(x,15,z);%更新drone_node的list中的包
                                                     break
                                                 end
                                                 i=i+1;
                                             end
-                                            node(need,5)=T-St;%节点遭遇drone的时间更新
-                                        else %非处于最近节点处，则移动drone
+                                            node(drone(x,15,z),5)=T-St;%节点遭遇drone的时间更新
+                                        else %非处于随机节点处，则移动drone
 
                                             drone(x,2,z)=drone(x,1,z);%更新上一跳位置
-                                            if drone(x,1,z) > node(need,1)
+                                            if drone(x,1,z) > node(drone(x,15,z),1)
                                                 drone(x,1,z)=drone(x,1,z)-dcell;%更新现在位置
                                             else
                                                 drone(x,1,z)=drone(x,1,z)+dcell;%更新现在位置
@@ -690,20 +708,20 @@ while t<=turn %数据收集轮数
                                             drone(x,4,z)=b;%更新现在跳点坐标位置
                                             drone(x,5,z)=drone(x,5,z)-St_P(x);%飞行则能量减少
 
-                                            if ((drone(x,2,z)<=node(need,1) && node(need,1)<=drone(x,1,z))||(drone(x,1,z)<=node(need,1) && node(need,1)<=drone(x,2,z))) %与相应node相遇
+                                            if ((drone(x,2,z)<=node(drone(x,15,z),1) && node(drone(x,15,z),1)<=drone(x,1,z))||(drone(x,1,z)<=node(drone(x,15,z),1) && node(drone(x,15,z),1)<=drone(x,2,z))) %与相应node相遇
+
                                                 drone(x,7,z)=St_tphoto;%拍摄数据倒计时；
                                                 drone(x,6,z)=drone(x,6,z)+1;%累加携带的包
                                                 i=1;
                                                 while i<=Node
                                                     if drone_node(x,i,z) ==0
-                                                        drone_node(x,i,z)=need;%更新drone_node的list中的包
+                                                        drone_node(x,i,z)=drone(x,15,z);%更新drone_node的list中的包
                                                         break
                                                     end
                                                     i=i+1;
                                                 end
-                                                node(need,5)=T;%节点遭遇drone的时间更新
+                                                node(drone(x,15,z),5)=T;%节点遭遇drone的时间更新
                                             else
-
                                                 if((drone(x,2,z)<=drone(x-1,1,z) && drone(x-1,1,z)<=drone(x,1,z))||(drone(x,1,z)<=drone(x-1,1,z) && drone(x-1,1,z)<=drone(x,2,z)))%判断遭遇异环
                                                     if drone(x,6,z)>0 %假如有携带包
                                                         if drone(x-1,7,z)<=0 && drone(x-1,8,z)<=0 %异环无数据传输操作，处于自由状态
@@ -738,7 +756,7 @@ while t<=turn %数据收集轮数
                                             end
                                         end
                                     end
-                                else %不存在最近目标节点
+                                else %不存在随机目标节点
                                     if drone(x,6,z)>0 %有携带包
                                         if((drone(x,2,z)<=drone(x-1,1,z) && drone(x-1,1,z)<=drone(x,1,z))||(drone(x,1,z)<=drone(x-1,1,z) && drone(x-1,1,z)<=drone(x,2,z)))%遭遇异环
                                             if drone(x-1,7,z)<=0 && drone(x-1,8,z)<=0 %异环无数据传输操作，处于自由状态
@@ -863,20 +881,20 @@ while t<=turn %数据收集轮数
                     kk=(kklcopy-1)*Node+kk;
                     Node_aoi=(kkl+kkj)/kk;
                     subplot(2,3,2) % 定位窗口
-                    plot([Node_aoi_T*S_St/St,T*S_St/St],[Node_aoi_copy*S_St/St,Node_aoi*S_St/St],'r-');% 绘制已到达目的地节点在到达目的地时刻的平均Aoi
+                    plot([Node_aoi_T*S_St/St,T*S_St/St],[Node_aoi_copy*S_St/St,Node_aoi*S_St/St],'b-');% 绘制已到达目的地节点在到达目的地时刻的平均Aoi
                     Node_aoi_copy=Node_aoi;
                     Node_aoi_T=T;
 
                     if T_aoi_node ==0%首个节点到达目的地
                         subplot(2,3,3) % 定位窗口
-                        plot([0,T*S_St/St],[0,(T-T_aoi_node)*S_St/St],'r-');% 绘制即时Aoi
-                        plot([T*S_St/St,T*S_St/St],[(T-T_aoi_node)*S_St/St,(T-node(i,5))*S_St/St],'r-');% 绘制即时Aoi
+                        plot([0,T*S_St/St],[0,(T-T_aoi_node)*S_St/St],'b-');% 绘制即时Aoi
+                        plot([T*S_St/St,T*S_St/St],[(T-T_aoi_node)*S_St/St,(T-node(i,5))*S_St/St],'b-');% 绘制即时Aoi
                         T_aoi=T;
                         T_aoi_node=node(i,5);
                     else
                         subplot(2,3,3) % 定位窗口
-                        plot([T_aoi*S_St/St,T*S_St/St],[(T_aoi-T_aoi_node)*S_St/St,(T-T_aoi_node)*S_St/St],'r-');% 绘制即时Aoi
-                        plot([T*S_St/St,T*S_St/St],[(T-T_aoi_node)*S_St/St,(T-node(i,5))*S_St/St],'r-');% 绘制即时Aoi
+                        plot([T_aoi*S_St/St,T*S_St/St],[(T_aoi-T_aoi_node)*S_St/St,(T-T_aoi_node)*S_St/St],'b-');% 绘制即时Aoi
+                        plot([T*S_St/St,T*S_St/St],[(T-T_aoi_node)*S_St/St,(T-node(i,5))*S_St/St],'b-');% 绘制即时Aoi
                         T_aoi=T;
                         T_aoi_node=node(i,5);
                     end
@@ -948,5 +966,5 @@ while t<=turn %数据收集轮数
 
     t=t+1;
 end
-save Drones_Trajectory_Greedy A air_dencity avr b bandwidth blade_angular_velocity cc cell Cinside circle Coutside dcell dg dhave dp dr drag dread drone drone_node dronenumber dronenumbercope dx dy ee energy energy_before energy_mid fuselage_drag_ratio g Gr Gt i j Jer k kkj kk kkl kklcopy liuliang m mindistance n need node Node Node_aoi Node_aoi_copy Node_aoi_T Noise_power number o P0 Ph Pi Pphoto pr profile_drag_coefficient Pt Pv r rotor_radius rotor_solidity RT S_St shan SL Sm Sr SR St St_P St_Ph St_Pphoto St_PTransmit St_tphoto St_ttCinside St_ttCoutside t T T_aoi T_aoi_node tCinside tcopy tCoutside theta time_each_turn tphoto turn Utip V V0 w W Wavelength x z TD ED DD
+save Drones_Trajectory_random A air_dencity avr b bandwidth blade_angular_velocity cc cell Cinside circle Coutside dcell dg dhave dp dr drag dread drone drone_node dronenumber dronenumbercope dx dy ee energy energy_before energy_mid fuselage_drag_ratio g Gr Gt i j Jer k kkj kk kkl kklcopy liuliang m n need node Node Node_aoi Node_aoi_copy Node_aoi_T Noise_power number o P0 Ph Pi Pphoto pr profile_drag_coefficient Pt Pv r rotor_radius rotor_solidity RT S_St shan SL Sm Sr SR St St_P St_Ph St_Pphoto St_PTransmit St_tphoto St_ttCinside St_ttCoutside t T T_aoi T_aoi_node tCinside tcopy tCoutside theta time_each_turn tphoto turn Utip V V0 w W Wavelength x z TD ED DD
 end

@@ -1,7 +1,7 @@
 %GUI
 function GUI()
 
-W=inputdlg({'待扫描区域半径','无人机有效扫描半径','无人机有效通讯半径','设置扫描扇区数','时间度量','最外环飞行速度m/s','目标节点个数','角速度刻度','无人机能量','信息收集轮次','无人机起始于扇区的位置'},'输入参数集',1,{'1000','150','300','6','0.001','30','50','8000','100000','30','1'});
+W=inputdlg({'Radius of the scan area','Effective scanning radius of the UAV','Effective communication radius of the UAV','Set the number of scanning sectors','Time measurement','Outermost ring flight speed m/s','Number of target nodes','Total angular velocity scale','UAV battery energy','Information collection rounds','UAV starting position within the sector'},'Set of input parameters',1,{'1000','125','250','6','0.001','30','50','8000','100000','30','1'});
 SL=str2double(W{1});%待扫描区域半径
 SR=str2double(W{2});%无人机有效扫描半径
 Sr=str2double(W{3});%无人机有效通讯半径
@@ -33,6 +33,9 @@ end
 dread =[];
 dhave=[];
 time_each_turn=[];
+TD=[];
+DD=[];
+ED=[];
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 profile_drag_coefficient=0.012; %剖面阻力系数
 air_dencity=1.225; %空气密度
@@ -54,7 +57,7 @@ Pv=P0*(1+3*(V^2)/(Utip^2))+Pi*V0/V+1/2*fuselage_drag_ratio*air_dencity*rotor_sol
 bandwidth=20*2^20;%带宽，单位赫兹
 Wavelength=0.125;%波长，单位m
 Pt=0.25;%无人机传送拍摄数据的功率，单位W
-Noise_power=1*10^(-12);%噪声功率，单位m
+Noise_power=1*10^(-10);%噪声功率，单位m
 Gt=1;%天线传输增益
 Gr=1;%天线接收增益
 Cinside=bandwidth*log2(1+((Wavelength/(4*pi*(pr/2)))^2)*(Gt*Gr*Pt/Noise_power));%内环传输速率
@@ -71,7 +74,7 @@ Pphoto=0.5;%无人机拍摄数据的功率，单位W
 i =1;
 dp =[];
 while i <=circle
-    dp = [dp;P0*(1+3*(((dr(i)/dr(circle))*V)^2)/(Utip^2))+Pi*V0/((dr(i)/dr(circle))*V)+1/2*fuselage_drag_ratio*air_dencity*rotor_solidity*A*((dr(i)/dr(circle))*V)^3;];%每个环中drone以既定速度飞行时的功率
+    dp = [dp;P0*(1+3*(((dr(i)/dr(circle))*V)^2)/(Utip^2))+Pi*((1+((((dr(i)/dr(circle))*V))^4)/(4*(V0)^4))^(1/2)-((((dr(i)/dr(circle))*V))^2)/(2*(V0)^2))^(1/2)+1/2*fuselage_drag_ratio*air_dencity*rotor_solidity*A*((dr(i)/dr(circle))*V)^3;];%每个环中drone以既定速度飞行时的功率
     i=i+1;
 end
 
@@ -189,6 +192,7 @@ dronenumber=Sm*circle;% 已用无人机数量
 dronenumbercope=dronenumber;
 subplot(2,3,5) % 定位窗口
 plot(1,dronenumber,'*','color',[0 0 1], 'MarkerSize', 5 );% 绘制已用无人机数量
+DD=[DD;dronenumber];
 
 
 Node_aoi=0;%临时参数
@@ -3949,12 +3953,14 @@ while t<=turn %数据收集轮数
             dronenumbercope=dronenumber;
             subplot(2,3,5) % 定位窗口
             plot(t,dronenumber,'*','color',[0 0 1], 'MarkerSize', 5 );% 绘制已用无人机数量
+            DD=[DD;dronenumber];
         end
         if t ~=1
             if t~=tcopy
                 tcopy= t;
                 subplot(2,3,5) % 定位窗口
                 plot(t,dronenumber,'*','color',[0 0 1], 'MarkerSize', 5 );% 绘制已用无人机数量
+                DD=[DD;dronenumber];
             end
         end
 
@@ -3983,6 +3989,7 @@ while t<=turn %数据收集轮数
             subplot(2,3,4) % 定位窗口
             plot([t,t],[(T-RT)*S_St/St,0],'r-');% 绘制周期耗时
             plot(t,(T-RT)*S_St/St,'*','color',[0 0 1], 'MarkerSize', 5 );% 绘制周期耗时
+            TD=[TD;(T-RT)*S_St/St];
             RT=T;
 
             i=1;
@@ -4000,6 +4007,7 @@ while t<=turn %数据收集轮数
             energy=energy-energy_before;
             subplot(2,3,6) % 定位窗口
             plot(t,energy,'*','color',[0 0 1], 'MarkerSize', 5 );% 绘制drone已用能量
+            ED=[ED;energy];
             energy_before=energy_mid;
 
             break; %上一轮收集数据完毕，准备进入下一轮
@@ -4022,5 +4030,5 @@ while t<=turn %数据收集轮数
     t=t+1;
 end
 
-save Drones_Trajectory_new A air_dencity avr b bandwidth blade_angular_velocity c cc cell Cinside circle Coutside dcell dg dhave dp dr drag dread drone drone_node dronenumber dronenumbercope dx dy ee energy energy_before energy_mid fuselage_drag_ratio g Gr Gt i j Jer k kkj kk kkl kklcopy liuliang m max_ni min_shun n neck need node Node Node_aoi Node_aoi_copy Node_aoi_T Noise_power number o P0 Ph Pi Pphoto pr profile_drag_coefficient Pt Pv r rotor_radius rotor_solidity RT S_St shan SL Sm Sr SR St St_P St_Ph St_Pphoto St_PTransmit St_tphoto St_ttCinside St_ttCoutside t T T_aoi T_aoi_node tCinside tcopy tCoutside theta time_each_turn tphoto turn u Utip V V0 w W Wavelength x z zmax zmin
+save Drones_Trajectory_new A air_dencity avr b bandwidth blade_angular_velocity c cc cell Cinside circle Coutside dcell dg dhave dp dr drag dread drone drone_node dronenumber dronenumbercope dx dy ee energy energy_before energy_mid fuselage_drag_ratio g Gr Gt i j Jer k kkj kk kkl kklcopy liuliang m max_ni min_shun n neck need node Node Node_aoi Node_aoi_copy Node_aoi_T Noise_power number o P0 Ph Pi Pphoto pr profile_drag_coefficient Pt Pv r rotor_radius rotor_solidity RT S_St shan SL Sm Sr SR St St_P St_Ph St_Pphoto St_PTransmit St_tphoto St_ttCinside St_ttCoutside t T T_aoi T_aoi_node tCinside tcopy tCoutside theta time_each_turn tphoto turn u Utip V V0 w W Wavelength x z zmax zmin TD ED DD
 end
