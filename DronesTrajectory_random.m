@@ -109,7 +109,7 @@ St_ttCoutside=tCoutside*St/S_St;%外环传输一个数据包倒计时s
     end
 
 % 创建窗口
-Fig =figure("name","Drones Trajectory radom", "position", [100 100 1200 750]);
+Fig =figure("name","Drones Trajectory random", "position", [100 100 1200 750]);
 % %增加暂停按钮
 bt =uicontrol(Fig,'Style','togglebutton','String','||','FontSize',10,'Units','normalized','Position',[0.92,0.3,0.05,0.05],'Callback',@do);
 % figure("name","Drones Trajectory", "position", [100 100 1200 750]);
